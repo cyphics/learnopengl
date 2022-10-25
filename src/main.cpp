@@ -1,5 +1,6 @@
 #include <iostream>
 #include <glad/glad.h>
+#include <cmath>
 #include "GLFW/glfw3.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -21,10 +22,11 @@ const char *vertexShaderSource = "#version 330 core\n"
 
 const char *fragmentShaderSource = "#version 330 core\n"
                                   "out vec4 FragColor;\n"
-                                  "in vec4 vertexColor;\n"
+//                                  "in vec4 vertexColor;\n"
+                                  "uniform vec4 ourColor;\n"
                                   "void main()\n"
                                   "{\n"
-                                  " FragColor = vertexColor;\n"
+                                  " FragColor = ourColor;\n"
                                   "}\0";
 
 
@@ -112,10 +114,19 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
 
+
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(shaderProgram);
+
+        auto timeValue = (float) glfwGetTime();
+        auto greenValue = (float)(sin(timeValue) / 2.0f) + 0.5f;
+        int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
+        if (vertexColorLocation == -1) {
+            std::cout << "Unable to find uniform 'ourColor'" << std::endl;
+        }
+        glUniform4f(vertexColorLocation, greenValue, greenValue, greenValue, 1.0f);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 //        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
