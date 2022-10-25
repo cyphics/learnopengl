@@ -71,8 +71,13 @@ int main() {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        float currentTime = glfwGetTime();
+
         ourShader.use();
+
         ourShader.setFloat("someUniform", 1.0f);
+        ourShader.setFloat("currentTime", currentTime);
+
 
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
