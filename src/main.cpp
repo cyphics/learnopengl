@@ -14,6 +14,7 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 glm::vec3 getDirectionFromEulerAngles(float yaw, float pitch);
 
 // settings
@@ -25,6 +26,7 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 float lastX = 400.0f, lastY = 300.0f;
 bool firstMouse = true;
+float fov = 45.0f;
 
 // Camera variables
 float yaw = -90.0f;
@@ -50,6 +52,7 @@ int main() {
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     // glad: load all OpenGL function pointers
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -224,7 +227,7 @@ int main() {
 
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(fov), 800.0f / 600.0f, 0.1f, 100.0f);
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
@@ -310,4 +313,10 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
 
     glm::vec3 direction = getDirectionFromEulerAngles(yaw, pitch);
     cameraFront = glm::normalize(direction);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+    fov -= (float)yoffset;
+    if (fov < 1.0f) fov = 1.0f;
+    if (fov > 45.0f) fov = 45.0f;
 }
