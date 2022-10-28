@@ -82,6 +82,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     if (!success) {
         glGetShaderInfoLog(fragment, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED for " << fragmentPath << "\n" << infoLog << std::endl;
+        exit(1);
     }
 
     ID = glCreateProgram();
@@ -92,6 +93,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     if(!success) {
         glGetProgramInfoLog(ID, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+        exit(1);
     }
 
     // delete shaders; the're linked into our program and are no longer necessary

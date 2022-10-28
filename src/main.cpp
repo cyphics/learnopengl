@@ -65,7 +65,7 @@ int main() {
 
     // build and compile our shader program
     Shader lightSourceShader("../shaders/light.vx", "../shaders/light.fx");
-    Shader lightingShader("../shaders/cubes.vx", "../shaders/cubes.fx");
+    Shader lightingShader("../shaders/cubes.vsh", "../shaders/cubes.fsh");
 
     float vertices[] = {
             // positions          // normals           // texture coords
@@ -151,8 +151,8 @@ int main() {
         lightingShader.use();
         lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
         lightingShader.setVec3("lightColor",  1.0f, 1.0f, 1.0f);
-        lightingShader.setVec3("lightPos", lightPos);
-        lightingShader.setVec3("viewPos", camera.Position);
+        lightingShader.setVec3("lightPos",    lightPos);
+        lightingShader.setVec3("viewPos",     camera.Position);
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
@@ -167,9 +167,6 @@ int main() {
 
         // Draw light source
         lightSourceShader.use();
-//        lightPos.x = sin(currentTime);
-//        lightPos.z = cos(currentTime);
-//        lightPos.y = sin(currentTime) * cos(currentTime);
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.2f));
         lightSourceShader.setMat4("projection", projection);
