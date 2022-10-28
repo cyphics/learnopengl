@@ -47,8 +47,9 @@ public:
     // constructor with vectors
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
            glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
+           glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f),
            float yaw = YAW, float pitch = PITCH) :
-           Front(glm::vec3(0.0f, 0.0f, -1.0f)),
+           Front(front),
            MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM),
            Position (position), WorldUp (up), Yaw (yaw), Pitch (pitch) {
         updateCameraVectors();
@@ -96,6 +97,7 @@ public:
                 Position.y -= velocity;
                 break;
         }
+        std::cout << "Camera position: (" << Position.x << "," << Position.y << "," << Position.z << ")" << std::endl;
     }
 
     /*
@@ -126,6 +128,10 @@ public:
         if (Zoom > 45.0f) Zoom = 45.0f;
     }
 
+    void setFront(glm::vec3 front) {
+        Front = front;
+    }
+
 private:
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors() {
@@ -138,6 +144,8 @@ private:
         // also recalculate the Right and Up vectors
         Right = glm::normalize(glm::cross(Front, WorldUp));
         Up    = glm::normalize(glm::cross(Right, Front));
+        std::cout << "Camera orientation: (" << front.x << "," << front.y << "," << front.z << std::endl;
     }
 };
+
 #endif //OPENGL_CAMERA_H

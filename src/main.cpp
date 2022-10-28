@@ -26,9 +26,10 @@ float lastFrame = 0.0f;
 
 
 // Camera variables
-glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  3.0f);
+glm::vec3 cameraPos   = glm::vec3(-1.53256,-1.06651,1.99429);
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
-Camera camera = Camera(cameraPos, cameraUp);
+glm::vec3 cameraFront = glm::vec3(0.765868,0.427358,-0.480428);
+Camera camera = Camera(cameraPos, cameraUp, cameraFront);
 float lastX = SCR_WIDTH / 2.0f, lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
@@ -132,6 +133,8 @@ int main() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+    camera.setFront(cameraFront);
+
     while (!glfwWindowShouldClose(window)) {
         auto currentTime = static_cast<float>(glfwGetTime());
         deltaTime = currentTime - lastFrame;
@@ -164,6 +167,9 @@ int main() {
 
         // Draw light source
         lightSourceShader.use();
+//        lightPos.x = sin(currentTime);
+//        lightPos.z = cos(currentTime);
+//        lightPos.y = sin(currentTime) * cos(currentTime);
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.2f));
         lightSourceShader.setMat4("projection", projection);
@@ -203,7 +209,6 @@ void processInput(GLFWwindow *window) {
         camera.ProcessKeyboard(Camera_Movement::UP, deltaTime);
     if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         camera.ProcessKeyboard(Camera_Movement::DOWN, deltaTime);
-
 }
 
 void mouseCallback(GLFWwindow* window, double xposIn, double yposIn) {
