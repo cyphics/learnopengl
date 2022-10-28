@@ -16,7 +16,9 @@ enum Camera_Movement {
     FORWARD,
     BACKWARD,
     LEFT,
-    RIGHT
+    RIGHT,
+    UP,
+    DOWN
 };
 
 // Default camera values
@@ -86,6 +88,12 @@ public:
                 break;
             case RIGHT:
                 Position += Right * velocity;
+                break;
+            case UP:
+                Position.y += velocity;
+                break;
+            case DOWN:
+                Position.y -= velocity;
                 break;
         }
     }

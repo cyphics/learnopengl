@@ -6,6 +6,7 @@
 #define OPENGL_SHADER_H
 
 #include <glad/glad.h>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <string>
 #include <fstream>
@@ -43,6 +44,9 @@ public:
     void setInt  (const std::string &name, int   value) const;
     void setFloat(const std::string &name, float value) const;
     void setMat4(const std::string &name, glm::mat4 matrix) const;
+    void setVec3(const std::string &name, float d, float d1, float d2) const;
+    void setVec3(const std::string &name, glm::vec3 vector) const;
+
 };
 
 
@@ -66,7 +70,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(vertex, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED for " << vertexPath << "\n" << infoLog << std::endl;
     }
 
     // fragment shader
@@ -77,7 +81,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(fragment, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED for " << fragmentPath << "\n" << infoLog << std::endl;
     }
 
     ID = glCreateProgram();
@@ -113,6 +117,13 @@ void Shader::setMat4(const std::string &name, glm::mat4 matrix) const {
     glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(matrix));
 }
 
+void Shader::setVec3(const std::string &name, float d, float d1, float d2) const {
+    glUniform3f(glGetUniformLocation(ID, name.c_str()), d, d1, d2);
+}
+
+void Shader::setVec3(const std::string &name, glm::vec3 vector) const {
+    glUniform3f(glGetUniformLocation(ID, name.c_str()), vector.x, vector.y, vector.z);
+}
 
 
 #endif //OPENGL_SHADER_H
