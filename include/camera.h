@@ -97,7 +97,7 @@ public:
                 Position.y -= velocity;
                 break;
         }
-        std::cout << "Camera position: (" << Position.x << "," << Position.y << "," << Position.z << ")" << std::endl;
+//        std::cout << "Camera position: (" << Position.x << "," << Position.y << "," << Position.z << ")" << std::endl;
     }
 
     /*
@@ -144,7 +144,7 @@ private:
         // also recalculate the Right and Up vectors
         Right = glm::normalize(glm::cross(Front, WorldUp));
         Up    = glm::normalize(glm::cross(Right, Front));
-        std::cout << "Camera orientation: (" << front.x << "," << front.y << "," << front.z << std::endl;
+//        std::cout << "Camera orientation: (" << front.x << "," << front.y << "," << front.z << std::endl;
     }
 };
 

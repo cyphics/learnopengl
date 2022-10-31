@@ -30,7 +30,7 @@ glm::vec3 cameraPos   = glm::vec3(-1.53256,-1.06651,1.99429);
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
 glm::vec3 cameraFront = glm::vec3(0.765868,0.427358,-0.480428);
 Camera camera = Camera(cameraPos, cameraUp, cameraFront);
-float lastX = SCR_WIDTH / 2.0f, lastY = SCR_HEIGHT / 2.0f;
+float lastX = cameraFront.x, lastY = cameraFront.y;
 bool firstMouse = true;
 
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
@@ -64,7 +64,7 @@ int main() {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // build and compile our shader program
-    Shader lightSourceShader("../shaders/light.vx", "../shaders/light.fx");
+    Shader lightSourceShader("../shaders/light.vsh", "../shaders/light.fsh");
     Shader lightingShader("../shaders/cubes.vsh", "../shaders/cubes.fsh");
 
     float vertices[] = {
@@ -150,9 +150,27 @@ int main() {
         // Draw cube
         lightingShader.use();
         lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-        lightingShader.setVec3("lightColor",  1.0f, 1.0f, 1.0f);
         lightingShader.setVec3("lightPos",    lightPos);
         lightingShader.setVec3("viewPos",     camera.Position);
+        lightingShader.setVec3("material.ambient", 0.0f, 0.1f, 0.06f);
+        lightingShader.setVec3("material.diffuse", 0.0f, 0.50980392f, 0.50980392f);
+        lightingShader.setVec3("material.specular", 0.50195078f, 0.50195078f, 0.50195078f);
+        lightingShader.setFloat("material.shininess", 25.0f);
+
+        float time = glfwGetTime();
+        glm::vec3 lightColor;
+        lightColor.x = sin(time * 2.0f);
+        lightColor.y = sin(time * 0.7f);
+        lightColor.z = sin(time * 1.3f);
+
+        glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
+        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+
+        lightColor = glm::vec3(1.0);
+        lightingShader.setVec3("lightColor", glm::vec3(1.0));
+        lightingShader.setVec3("light.ambient", lightColor);
+        lightingShader.setVec3("light.diffuse", lightColor);
+        lightingShader.setVec3("light.specular", lightColor);
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
@@ -167,6 +185,7 @@ int main() {
 
         // Draw light source
         lightSourceShader.use();
+        lightSourceShader.setVec3("lightColor", lightColor);
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.2f));
         lightSourceShader.setMat4("projection", projection);
