@@ -6,15 +6,15 @@
 #include "shader.h"
 #include "camera.h"
 
-//#define STB_IMAGE_IMPLEMENTATION
-//#include "stb_image.h"
-
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+unsigned int loadTexture(const char *path);
 
 // settings
 const unsigned int SCR_WIDTH  = 800;
@@ -113,25 +113,36 @@ int main() {
     };
 
     // Build cube vertex buffer
-    unsigned int cubeVBO, cubeVAO;
-    glGenBuffers(1, &cubeVBO);
+    unsigned int VBO, cubeVAO;
     glGenVertexArrays(1, &cubeVAO);
-    glBindVertexArray(cubeVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glGenBuffers(1, &VBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) , vertices, GL_STATIC_DRAW);
 
+    glBindVertexArray(cubeVAO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6*sizeof(float)));
+    glEnableVertexAttribArray(2);
 
-//    // Bind it then to light VAO
+    // Bind it then to light VAO
     unsigned int lightCubeVAO;
     glGenVertexArrays(1, &lightCubeVAO);
     glBindVertexArray(lightCubeVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+
+    unsigned int diffuseMap = loadTexture("../textures/container2.png");
+    if (diffuseMap == -1) exit(1);
+
+    lightingShader.use();
+    lightingShader.setInt("material.diffuse", 0);
 
     camera.setFront(cameraFront);
 
@@ -147,45 +158,38 @@ int main() {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
         // Draw cube
         lightingShader.use();
-        lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-        lightingShader.setVec3("lightPos",    lightPos);
+        lightingShader.setVec3("light.position", lightPos);
         lightingShader.setVec3("viewPos",     camera.Position);
-        lightingShader.setVec3("material.ambient", 0.0f, 0.1f, 0.06f);
-        lightingShader.setVec3("material.diffuse", 0.0f, 0.50980392f, 0.50980392f);
-        lightingShader.setVec3("material.specular", 0.50195078f, 0.50195078f, 0.50195078f);
-        lightingShader.setFloat("material.shininess", 25.0f);
 
-        float time = glfwGetTime();
-        glm::vec3 lightColor;
-        lightColor.x = sin(time * 2.0f);
-        lightColor.y = sin(time * 0.7f);
-        lightColor.z = sin(time * 1.3f);
+        lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+        lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
-        glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
-        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+        lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+        lightingShader.setFloat("material.shininess", 64.0f);
 
-        lightColor = glm::vec3(1.0);
-        lightingShader.setVec3("lightColor", glm::vec3(1.0));
-        lightingShader.setVec3("light.ambient", lightColor);
-        lightingShader.setVec3("light.diffuse", lightColor);
-        lightingShader.setVec3("light.specular", lightColor);
 
+        // view / projection / model transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 model = glm::mat4(1.0f);
-
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view",       view);
         lightingShader.setMat4("model",      model);
+
+        // bind diffuse map
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, diffuseMap);
 
         glBindVertexArray(cubeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Draw light source
         lightSourceShader.use();
-        lightSourceShader.setVec3("lightColor", lightColor);
+        lightSourceShader.setVec3("lightColor", glm::vec3(1.0f));
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.2f));
         lightSourceShader.setMat4("projection", projection);
@@ -201,7 +205,7 @@ int main() {
 
     glDeleteVertexArrays(1, &cubeVAO);
 //    glDeleteVertexArrays(1, &lightCubeVAO);
-    glDeleteBuffers(1, &cubeVBO);
+    glDeleteBuffers(1, &VBO);
     glfwTerminate();
     return 0;
 }
@@ -247,4 +251,37 @@ void mouseCallback(GLFWwindow* window, double xposIn, double yposIn) {
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+unsigned int loadTexture(const char *path) {
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data) {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        // set the texture wrapping/filtering options ( on currenlty bound texture)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        // set texture filtering parameters
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    } else {
+        std::cout << "failed to load texture " << path << std::endl;
+        return -1;
+    }
+    stbi_image_free(data);
+    return textureID;
 }

@@ -14,7 +14,7 @@ find_library(LIB glfw3 lib)
 add_executable(opengl
         src/main.cpp
         src/glad.c
-        src/shader.h include/camera.h)
+        src/shader.h include/camera.h include/filesystem.h)
 target_link_libraries(${CMAKE_PROJECT_NAME} glfw  ${GLFW_LIBRARY} ${OPENGL_LIBRARY})
 #target_link_libraries(${ALL_LIBS})
 
