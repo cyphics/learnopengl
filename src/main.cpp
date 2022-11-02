@@ -184,6 +184,9 @@ int main() {
         lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
         lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
+        lightingShader.setFloat("light.constant" , 1.0f);
+        lightingShader.setFloat("light.linear"   , 0.09f);
+        lightingShader.setFloat("light.quadratic", 0.032f);
 //        lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
         lightingShader.setFloat("material.shininess", 64.0f);
 
@@ -204,6 +207,7 @@ int main() {
             glBindVertexArray(cubeVAO);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
+
         // bind diffuse map
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, diffuseMap);
@@ -217,7 +221,8 @@ int main() {
         // Draw light source
         lightSourceShader.use();
         lightSourceShader.setVec3("lightColor", glm::vec3(1.0f));
-        glm::mat4 model = glm::translate(model, lightPos);
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.2f));
         lightSourceShader.setMat4("projection", projection);
         lightSourceShader.setMat4("view",       view);
