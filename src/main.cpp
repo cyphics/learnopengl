@@ -126,6 +126,14 @@ int main() {
             glm::vec3( 1.5f, 0.2f, -1.5f),
             glm::vec3(-1.3f, 1.0f, -1.5f)
     };
+
+    glm::vec3 pointLightPositions[] = {
+            glm::vec3( 0.7f,  0.2f,   2.0f),
+            glm::vec3( 2.3f, -3.3f,  -4.0f),
+            glm::vec3(-4.0f,  2.0f, -12.0f),
+            glm::vec3( 0.0f,  0.0f,  -3.0f)
+    };
+
     // Build cube vertex buffer
     unsigned int VBO, cubeVAO;
     glGenVertexArrays(1, &cubeVAO);
@@ -161,6 +169,31 @@ int main() {
     lightingShader.use();
     lightingShader.setInt("material.diffuse", 0);
     lightingShader.setInt("material.specular", 1);
+    lightingShader.setFloat("material.shininess", 64.0f);
+
+//    lightingShader.use();
+    lightingShader.setVec3("viewPos",     camera.Position);
+
+    // directional light
+    lightingShader.setVec3("dirLight.direction", 0.2f, 0.2f, 0.2f);
+    lightingShader.setVec3("dirLight.ambient", 0.2f, 0.2f, 0.2f);
+    lightingShader.setVec3("dirLight.diffuse", 0.5f, 0.5f, 0.5f);
+    lightingShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
+
+    // point lights
+    for (int i = 0; i < 4; i++) {
+        std::string location = "pointLights[";
+        location += i + '0';
+        location += "]";
+        lightingShader.setVec3(location + ".position",   pointLightPositions[i]);
+        lightingShader.setVec3( location + ".ambient",   glm::vec3(.0));
+        lightingShader.setVec3( location + ".diffuse",   glm::vec3(1.0));
+        lightingShader.setVec3( location + ".specular",  glm::vec3(1.0));
+        lightingShader.setFloat(location + ".constant",  1.0f);
+        lightingShader.setFloat(location + ".linear",    0.09f);
+        lightingShader.setFloat(location + ".quadratic", 0.032f);
+    }
+
 
     camera.setFront(cameraFront);
 
@@ -176,25 +209,19 @@ int main() {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
-        // Draw cube
+        // spot light (flashlight)
         lightingShader.use();
-        lightingShader.setVec3("light.position", camera.Position);
-        lightingShader.setVec3("light.direction", camera.Front);
-        lightingShader.setFloat("light.innerCutOff", glm::cos(glm::radians(12.5f)));
-        lightingShader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
         lightingShader.setVec3("viewPos",     camera.Position);
-
-        lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
-        lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
-        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
-
-        lightingShader.setFloat("light.constant" , 1.0f);
-        lightingShader.setFloat("light.linear"   , 0.09f);
-        lightingShader.setFloat("light.quadratic", 0.032f);
-//        lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
-        lightingShader.setFloat("material.shininess", 64.0f);
-
+        lightingShader.setVec3("spotLight.point.position", camera.Position);
+        lightingShader.setVec3("spotLight.direction", camera.Front);
+        lightingShader.setFloat("spotLight.innerCutOff", glm::cos(glm::radians(12.5f)));
+        lightingShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
+        lightingShader.setVec3( "spotLight.point.ambient",   glm::vec3(.0));
+        lightingShader.setVec3( "spotLight.point.diffuse",   glm::vec3(1.0));
+        lightingShader.setVec3( "spotLight.point.specular",  glm::vec3(1.0));
+        lightingShader.setFloat("spotLight.point.constant",  1.0f);
+        lightingShader.setFloat("spotLight.point.linear",    0.09f);
+        lightingShader.setFloat("spotLight.point.quadratic", 0.032f);
 
         // view / projection / model transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -202,6 +229,7 @@ int main() {
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view",       view);
 
+        // Draw cubes
         for(unsigned int i = 0; i < 10; i++){
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
@@ -222,19 +250,22 @@ int main() {
         glBindVertexArray(cubeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        // Draw light source
+        // Draw light sources
         lightSourceShader.use();
         lightSourceShader.setVec3("lightColor", glm::vec3(1.0f));
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos);
-        model = glm::scale(model, glm::vec3(0.2f));
-        lightSourceShader.setMat4("projection", projection);
-        lightSourceShader.setMat4("view",       view);
-        lightSourceShader.setMat4("model",      model);
+        for (int i = 0; i < 4; i++) {
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, pointLightPositions[i]);
+            model = glm::scale(model, glm::vec3(0.2f));
+            lightSourceShader.setMat4("projection", projection);
+            lightSourceShader.setMat4("view",       view);
+            lightSourceShader.setMat4("model",      model);
 
-        glBindVertexArray(lightCubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-//
+            glBindVertexArray(lightCubeVAO);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        }
+
         glfwSwapBuffers(window);
         glfwPollEvents();
         glCheckError();
@@ -252,20 +283,23 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 }
 
 void processInput(GLFWwindow *window) {
+    bool fast = false;
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+    if(glfwGetKey(window, GLFW_KEY_CAPS_LOCK) == GLFW_PRESS)
+        fast = true;
     if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime);
+        camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime, fast);
     if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime);
+        camera.ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime, fast);
     if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::LEFT, deltaTime);
+        camera.ProcessKeyboard(Camera_Movement::LEFT, deltaTime, fast);
     if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::RIGHT, deltaTime);
+        camera.ProcessKeyboard(Camera_Movement::RIGHT, deltaTime, fast);
     if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::UP, deltaTime);
+        camera.ProcessKeyboard(Camera_Movement::UP, deltaTime, fast);
     if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::DOWN, deltaTime);
+        camera.ProcessKeyboard(Camera_Movement::DOWN, deltaTime, fast);
 }
 
 void mouseCallback(GLFWwindow* window, double xposIn, double yposIn) {
