@@ -9,12 +9,14 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#define glCheckError() glCheckError_(__FILE__, __LINE__)
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 unsigned int loadTexture(const char *path);
+GLenum glCheckError_(const char *file, int line);
 
 // settings
 const unsigned int SCR_WIDTH  = 800;
@@ -177,7 +179,10 @@ int main() {
 
         // Draw cube
         lightingShader.use();
-        lightingShader.setVec3("light.position", lightPos);
+        lightingShader.setVec3("light.position", camera.Position);
+        lightingShader.setVec3("light.direction", camera.Front);
+        std::cout << camera.Front.x << camera.Front.y << camera.Front.z << std::endl;
+        lightingShader.setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
         lightingShader.setVec3("viewPos",     camera.Position);
 
         lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
@@ -196,7 +201,6 @@ int main() {
         glm::mat4 view = camera.GetViewMatrix();
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view",       view);
-        lightingShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
 
         for(unsigned int i = 0; i < 10; i++){
             glm::mat4 model = glm::mat4(1.0f);
@@ -233,6 +237,7 @@ int main() {
 //
         glfwSwapBuffers(window);
         glfwPollEvents();
+        glCheckError();
     }
 
     glDeleteVertexArrays(1, &cubeVAO);
@@ -316,4 +321,23 @@ unsigned int loadTexture(const char *path) {
     }
     stbi_image_free(data);
     return textureID;
+}
+
+GLenum glCheckError_(const char *file, int line) {
+    GLenum errorCode;
+    while((errorCode = glGetError()) != GL_NO_ERROR) {
+        std::string error;
+        switch (errorCode) {
+            case GL_INVALID_ENUM:                   error = "INVALID_ENUM"; break;
+            case GL_INVALID_INDEX:                  error = "INVALID_INDEX"; break;
+            case GL_INVALID_OPERATION:              error = "INVALID_OPERATION"; break;
+            case GL_STACK_OVERFLOW:                 error = "STACK_OVERFLOW"; break;
+            case GL_STACK_UNDERFLOW:                error = "STACK_UNDERFLOW"; break;
+            case GL_OUT_OF_MEMORY:                  error = "OUT_OF_MEMORY"; break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION:  error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+            default:                                error = "UNKNOWN_ERROR"; break;
+        }
+        std::cout << error << " | " << file << " (" << line << ")" << std::endl;
+    }
+    return errorCode;
 }
