@@ -223,13 +223,21 @@ int main() {
         lightingShader.setFloat("spotLight.point.linear",    0.09f);
         lightingShader.setFloat("spotLight.point.quadratic", 0.032f);
 
-        // view / projection / model transformations
+        // view / projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view",       view);
 
-        // Draw cubes
+        // bind diffuse map
+        lightSourceShader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, diffuseMap);
+        // bind specular map
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, specularMap);
+
+        // Draw containers
         for(unsigned int i = 0; i < 10; i++){
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
@@ -240,18 +248,7 @@ int main() {
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
-        // bind diffuse map
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, diffuseMap);
-        // bind specular map
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, specularMap);
-
-        glBindVertexArray(cubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
         // Draw light sources
-        lightSourceShader.use();
         lightSourceShader.setVec3("lightColor", glm::vec3(1.0f));
         for (int i = 0; i < 4; i++) {
             glm::mat4 model = glm::mat4(1.0f);
