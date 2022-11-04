@@ -60,7 +60,7 @@ int main() {
     }
 
     glEnable(GL_DEPTH_TEST);
-//    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     stbi_set_flip_vertically_on_load(true);
 
@@ -89,6 +89,21 @@ int main() {
         shader.use();
         shader.setMat4("projection", projection);
         shader.setMat4("view", view);
+
+        shader.setVec3("viewPos", camera.Front);
+
+
+        shader.setVec3("spotLight.point.position", camera.Position);
+        shader.setVec3("spotLight.direction", camera.Front);
+        shader.setFloat("spotLight.innerCutOff", glm::cos(glm::radians(12.5f)));
+        shader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
+        shader.setVec3( "spotLight.point.ambient",   glm::vec3(.3));
+        shader.setVec3( "spotLight.point.diffuse",   glm::vec3(1.0));
+        shader.setVec3( "spotLight.point.specular",  glm::vec3(1.0));
+        shader.setFloat("spotLight.point.constant",  1.0f);
+        shader.setFloat("spotLight.point.linear",    0.09f);
+        shader.setFloat("spotLight.point.quadratic", 0.032f);
+        shader.setFloat("material.shininess", 16.0f);
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));

@@ -55,10 +55,14 @@ void Mesh::Draw(Shader &shader) {
         // retrieve texture number (the N in diffuse_textureN)
         std::string number;
         std::string name = textures[i].type;
-        if(name == "texture_diffuse")
+        if(name == "texture_diffuse"){
             number = std::to_string(diffuseNr++);
-        else if(name == "texture_specular")
+            name = "diffuse";
+        }
+        else if(name == "texture_specular"){
+            name = "specular";
             number = std::to_string(specularNr++);
+        }
         else if(name == "texture_normal")
             number = std::to_string(normalNr++);
         else if(name == "texture_height")
@@ -67,8 +71,9 @@ void Mesh::Draw(Shader &shader) {
             std::cout << "ERROR: texture name " << name << " incorrectly formatted" << std::endl;
             exit(1);
         }
-        shader.setInt((name + number).c_str(), i);
+        shader.setInt(("material." + name).c_str(), i);
         glBindTexture(GL_TEXTURE_2D, textures[i].id);
+        glCheckError();
     }
     glActiveTexture(GL_TEXTURE0);
 
