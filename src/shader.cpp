@@ -5,7 +5,7 @@
 #include "shader.h"
 #include "helpers.h"
 
-std::string OpenFile(const char* path) {
+std::string OpenFile(const std::string& path) {
     std::string code;
     std::ifstream shaderFile;
     shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
@@ -18,13 +18,13 @@ std::string OpenFile(const char* path) {
     } catch (std::ifstream::failure &e) {
         std::cerr << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ " << path << " : " << strerror(errno) <<  std::endl;
     }
-    return code.c_str();
+    return code;
 }
 
-Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* identifier = "") {
+Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath, const char* identifier) {
     // 1. retrieve the vertex/fragment source code from filePath
-    std::string vertexCode = OpenFile(vertexPath);
-    std::string fragmentCode = OpenFile(fragmentPath);
+    std::string vertexCode = OpenFile("../shaders/" + vertexPath);
+    std::string fragmentCode = OpenFile("../shaders/" + fragmentPath);
     const char* vShaderCode = vertexCode.c_str();
     const char* fShaderCode = fragmentCode.c_str();
     this->identifier = identifier;

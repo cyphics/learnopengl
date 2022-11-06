@@ -9,6 +9,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include <vector>
 
 // defines several possible options for camera movement.
@@ -75,7 +78,7 @@ public:
     /*
      * Processes input received from any keyboard-like input system.
      */
-    void ProcessKeyboard(Camera_Movement direction, float deltaTime, bool fast) {
+    void ProcessKeyboard(Camera_Movement direction, float deltaTime, bool fast=false) {
         float velocity = MovementSpeed * deltaTime * (fast ? 3.0 : 1.0);
         switch (direction) {
             case FORWARD:

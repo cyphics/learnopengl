@@ -60,12 +60,13 @@ int main() {
     }
 
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_ALWAYS);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     stbi_set_flip_vertically_on_load(true);
 
     // build and compile our shader program
-    Shader shader("../shaders/cubes.vsh", "../shaders/cubes.fsh", "myShader");
+    Shader shader("../shaders/vertexShader.vsh", "../shaders/fragmentShader.fsh", "myShader");
 
 //    camera.setFront(cameraFront);
 

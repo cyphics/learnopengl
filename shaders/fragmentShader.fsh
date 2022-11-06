@@ -49,8 +49,7 @@ uniform DirLight   dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform SpotLight spotLight;
 
-void main()
-{
+void main() {
     // properties
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
@@ -60,12 +59,14 @@ void main()
     vec3 lighting = CalculateDirectionalLight(dirLight, norm, viewDir);
 
     // phase 2: Point lights
-    for (int i=0; i < NR_POINT_LIGHTS; i++)
-        lighting += CalculatePointLight(pointLights[i], norm, FragPos, viewDir);
-
-    // phase 3: Spot light
-    lighting += CalculateSpotLight(spotLight, norm, FragPos);
+//    for (int i=0; i < NR_POINT_LIGHTS; i++)
+//        lighting += CalculatePointLight(pointLights[i], norm, FragPos, viewDir);
+//
+//    // phase 3: Spot light
+//    lighting += CalculateSpotLight(spotLight, norm, FragPos);
     FragColor = vec4(lighting, 1.0);
+    FragColor = texture(material.diffuse, TexCoords);
+//        FragColor = vec4(1.0);
 };
 
 vec3 CalculateDirectionalLight(DirLight light, vec3 normal, vec3 viewDir) {

@@ -23,7 +23,8 @@ public:
     const char* identifier;
 
     // constructor reads and builds the shader
-    Shader(const char* vertexPath, const char* fragmentPath, const char* identifier);
+//    Shader(const char* vertexPath, const char* fragmentPath, const char* identifier = "");
+    Shader(const std::string &vertexPath, const std::string &fragmentPath, const char* identifier = "");
     // use/activate the shader
     void use();
     // utility uniform functions
