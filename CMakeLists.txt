@@ -19,7 +19,7 @@ add_executable(opengl
 #        src/model.cpp
         src/shader.cpp
 #        src/helpers.h
-        )
+        src/stb_image.cpp)
 target_link_libraries(${CMAKE_PROJECT_NAME} glfw  ${GLFW_LIBRARY} ${OPENGL_LIBRARY})
 #target_link_libraries(${ALL_LIBS})
 

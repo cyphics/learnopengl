@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
+#include <map>
 #include "camera.h"
 #include "shader.h"
 
@@ -71,6 +72,10 @@ int main()
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    stbi_set_flip_vertically_on_load(true);
 //    glDepthFunc(GL_ALWAYS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
     // build and compile shaders
@@ -78,59 +83,61 @@ int main()
     Shader shader("vertexShader.vsh", "fragmentShader.fsh");
     Shader shaderSingleColor("vertexShader.vsh", "shaderSingleColor.fsh");
 
-    std::vector<glm::vec3> vegetation;
-    vegetation.push_back(glm::vec3(-1.4f, 0.0f, -0.45f));
-    vegetation.push_back(glm::vec3(1.5f, 0.0f, 0.4f));
-    vegetation.push_back(glm::vec3(0.0f, 0.0f, 0.5f));
-    vegetation.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
-    vegetation.push_back(glm::vec3(0.4f, 0.0f, -0.5f));
+    std::vector<glm::vec3> windows;
+    windows.push_back(glm::vec3(-1.4f, 0.0f, -0.45f));
+    windows.push_back(glm::vec3(1.5f, 0.0f, 0.4f));
+    windows.push_back(glm::vec3(0.0f, 0.0f, 0.5f));
+    windows.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
+    windows.push_back(glm::vec3(0.4f, 0.0f, -0.5f));
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
-    float cubeVertices[] = {
-        // positions          // texture Coords
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+    float cubeVerticesCulled[] = {
+            // Back face
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, // Bottom-left
+            0.5f, -0.5f, -0.5f,  1.0f, 0.0f, // bottom-right
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-right
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-right
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f, // top-left
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, // bottom-left
+            // Front face
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-left
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f, // top-right
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // bottom-right
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f, // top-right
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-left
+            -0.5f,  0.5f,  0.5f,  0.0f, 1.0f, // top-left
+            // Left face
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // top-right
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // bottom-left
+            -0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-left
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // bottom-left
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // top-right
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-right
+            // Right face
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // top-left
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-right
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // bottom-right
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // bottom-right
+            0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-left
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // top-left
+            // Bottom face
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // top-right
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // bottom-left
+            0.5f, -0.5f, -0.5f,  1.0f, 1.0f, // top-left
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // bottom-left
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // top-right
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-right
+            // Top face
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f, // top-left
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-right
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // bottom-right
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // bottom-right
+            -0.5f,  0.5f,  0.5f,  0.0f, 0.0f, // bottom-left
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f  // top-left
     };
+
     float planeVertices[] = {
         // positions          // texture Coords (note we set these higher than 1 (together with GL_REPEAT as texture wrapping mode). this will cause the floor texture to repeat)
          5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
@@ -161,7 +168,7 @@ int main()
     glGenBuffers(1, &cubeVBO);
     glBindVertexArray(cubeVAO);
     glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerticesCulled), &cubeVerticesCulled, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
@@ -174,18 +181,19 @@ int main()
     glGenBuffers(1, &grassVBO);
     glBindVertexArray(grassVAO);
     glBindBuffer(GL_ARRAY_BUFFER, grassVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerticesCulled), &cubeVerticesCulled, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindVertexArray(0);
 
+
     // load textures
     // -------------
     unsigned int cubeTexture  = loadTexture("../resources/textures/marble.jpg");
     unsigned int floorTexture = loadTexture("../resources/textures/metal.png");
-    unsigned int grassTexture = loadTexture("../resources/textures/grass.png");
+    unsigned int grassTexture = loadTexture("../resources/textures/blending_transparent_window.png");
 
     // shader configuration
     // --------------------
@@ -225,6 +233,9 @@ int main()
         shader.setMat4("view", view);
         shader.setMat4("projection", projection);
 
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
+
         // normal containers
         glBindVertexArray(cubeVAO);
         glActiveTexture(GL_TEXTURE0);
@@ -237,12 +248,20 @@ int main()
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
+        glDisable(GL_CULL_FACE);
+
         glBindVertexArray(grassVAO);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, grassTexture);
-        for (int i = 0; i < vegetation.size(); i++) {
+        std::map<float, glm::vec3> sorted;
+        for (int i = 0; i < windows.size(); i++) {
+            float distance = glm::length(camera.Position - windows[i]);
+            sorted[distance] = windows[i];
+        }
+
+        for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
             model = glm::mat4 (1.0f);
-            model = glm::translate(model, vegetation[i]);
+            model = glm::translate(model, it->second);
             shader.setMat4("model", model);
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
@@ -280,6 +299,10 @@ void processInput(GLFWwindow *window)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
+    if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        camera.ProcessKeyboard(Camera_Movement::UP, deltaTime);
+    if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        camera.ProcessKeyboard(Camera_Movement::DOWN, deltaTime);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -344,8 +367,8 @@ unsigned int loadTexture(char const *path)
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
