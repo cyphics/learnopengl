@@ -65,7 +65,7 @@ int main() {
     stbi_set_flip_vertically_on_load(true);
 
     // build and compile our shader program
-    Shader shader("../shaders/vertexShader.vsh", "../shaders/fragmentShader.fsh", "myShader");
+    Shader shader("../shaders/sceneShader.vsh", "../shaders/sceneShader.fsh", "myShader");
 
 //    camera.setFront(cameraFront);
 
