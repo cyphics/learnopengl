@@ -17,6 +17,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
 
+void renderScene(Shader sceneShader);
+
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -30,6 +32,23 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
+unsigned int planeVAO, planeVBO;
+unsigned int cubeVAO, cubeVBO;
+unsigned int grassVAO, grassVBO;
+unsigned int quadVAO, quadVBO;
+
+unsigned int floorTexture;
+unsigned int cubeTexture;
+unsigned int grassTexture;
+
+unsigned int fbo;
+unsigned int mirrorBuffer;
+unsigned int rbo;
+
+std::vector<glm::vec3> windows;
+
+glm::mat4 view;
 
 int main()
 {
@@ -84,7 +103,6 @@ int main()
     Shader sceneShader("sceneShader.vsh", "sceneShader.fsh");
     Shader screenShader("screenShader.vsh", "screenShader.fsh");
 
-    std::vector<glm::vec3> windows;
     windows.push_back(glm::vec3(-1.4f, 0.0f, -0.45f));
     windows.push_back(glm::vec3(1.5f, 0.0f, 0.4f));
     windows.push_back(glm::vec3(0.0f, 0.0f, 0.5f));
@@ -139,13 +157,14 @@ int main()
             -0.5f,  0.5f, -0.5f,  0.0f, 1.0f  // top-left
     };
 
-    float quadVertices[] = {
-            -1.0f, -1.0f,  1.0f,  0.0f, 0.0f, // bottom-left
-            1.0f,  1.0f,  1.0f,  1.0f, 1.0f, // top-right
-            1.0f, -1.0f,  1.0f,  1.0f, 0.0f, // bottom-right
-            1.0f,  1.0f,  1.0f,  1.0f, 1.0f, // top-right
-            -1.0f, -1.0f,  1.0f,  0.0f, 0.0f, // bottom-left
-            -1.0f,  1.0f,  1.0f,  0.0f, 1.0f, // top-left
+    float mirrorVertices[] = {
+            -.3f, .6f,  1.0f,  0.0f, 0.0f, // bottom-left
+             .3f,  .9f,  1.0f,  1.0f, 1.0f, // top-right
+             .3f, .6f,  1.0f,  1.0f, 0.0f, // bottom-right
+
+             .3f,  .9f,  1.0f,  1.0f, 1.0f, // top-right
+            -.3f, .6f,  1.0f,  0.0f, 0.0f, // bottom-left
+            -.3f,  .9f,  1.0f,  0.0f, 1.0f, // top-left
     };
 
     float planeVertices[] = {
@@ -160,7 +179,6 @@ int main()
     };
 
     // plane VAO
-    unsigned int planeVAO, planeVBO;
     glGenVertexArrays(1, &planeVAO);
     glGenBuffers(1, &planeVBO);
     glBindVertexArray(planeVAO);
@@ -173,7 +191,6 @@ int main()
     glBindVertexArray(0);
 
     // cube VAO
-    unsigned int cubeVAO, cubeVBO;
     glGenVertexArrays(1, &cubeVAO);
     glGenBuffers(1, &cubeVBO);
     glBindVertexArray(cubeVAO);
@@ -186,7 +203,6 @@ int main()
     glBindVertexArray(0);
 
     // grass VAO
-    unsigned int grassVAO, grassVBO;
     glGenVertexArrays(1, &grassVAO);
     glGenBuffers(1, &grassVBO);
     glBindVertexArray(grassVAO);
@@ -199,12 +215,11 @@ int main()
     glBindVertexArray(0);
 
     // quad VAO
-    unsigned int quadVAO, quadVBO;
     glGenVertexArrays(1, &quadVAO);
     glGenBuffers(1, &quadVBO);
     glBindVertexArray(quadVAO);
     glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(mirrorVertices), &mirrorVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
@@ -214,21 +229,16 @@ int main()
 
 
 
-    unsigned int fbo;
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-    glCheckError();
-    unsigned int texColorBuffer;
-    glGenTextures(1, &texColorBuffer);
-    glBindTexture(GL_TEXTURE_2D, texColorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glGenTextures(1, &mirrorBuffer);
+    glBindTexture(GL_TEXTURE_2D, mirrorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800*0.3, 600*0.15, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColorBuffer, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mirrorBuffer, 0);
 //
-    unsigned int rbo;
     glGenRenderbuffers(1, &rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 800, 600);
@@ -244,9 +254,9 @@ int main()
 
     // load textures
     // -------------
-    unsigned int cubeTexture  = loadTexture("../resources/textures/marble.jpg");
-    unsigned int floorTexture = loadTexture("../resources/textures/metal.png");
-    unsigned int grassTexture = loadTexture("../resources/textures/blending_transparent_window.png");
+    cubeTexture = loadTexture("../resources/textures/marble.jpg");
+    floorTexture = loadTexture("../resources/textures/metal.png");
+    grassTexture = loadTexture("../resources/textures/blending_transparent_window.png");
 
     // sceneShader configuration
     // --------------------
@@ -266,77 +276,32 @@ int main()
         // -----
         processInput(window);
 
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
 
-        // Draw scene
-        {
-            glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glEnable(GL_DEPTH_TEST);
-            // floor
-            sceneShader.use();
-            glBindVertexArray(planeVAO);
-            glBindTexture(GL_TEXTURE_2D, floorTexture);
-            sceneShader.setMat4("model", glm::mat4(1.0f));
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-            glBindVertexArray(0);
+        camera.Yaw += 180.0f;
+        camera.ProcessMouseMovement(0, 0, false);
+        view = camera.GetViewMatrix();
+        renderScene(sceneShader);
+        camera.Yaw -= 180.0f;
+        camera.ProcessMouseMovement(0, 0, true);
+        view = camera.GetViewMatrix();
 
-            glm::mat4 model = glm::mat4(1.0f);
-            glm::mat4 view = camera.GetViewMatrix();
-            glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float) SCR_WIDTH / (float) SCR_HEIGHT,
-                                                    0.1f, 100.0f);
-            sceneShader.setMat4("view", view);
-            sceneShader.setMat4("projection", projection);
-
-            glEnable(GL_CULL_FACE);
-            glCullFace(GL_FRONT);
-
-            // normal containers
-            glBindVertexArray(cubeVAO);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, cubeTexture);
-            model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-            sceneShader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-            sceneShader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-
-            glDisable(GL_CULL_FACE);
-
-            glBindVertexArray(grassVAO);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, grassTexture);
-            std::map<float, glm::vec3> sorted;
-            for (int i = 0; i < windows.size(); i++) {
-                float distance = glm::length(camera.Position - windows[i]);
-                sorted[distance] = windows[i];
-            }
-
-            for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
-                model = glm::mat4(1.0f);
-                model = glm::translate(model, it->second);
-                sceneShader.setMat4("model", model);
-                glDrawArrays(GL_TRIANGLES, 0, 6);
-            }
-        }
-
-        // second pass
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        renderScene(sceneShader);
 
         screenShader.use();
         glBindVertexArray(quadVAO);
         glDisable(GL_DEPTH_TEST);
-        glBindTexture(GL_TEXTURE_2D, texColorBuffer);
+        glBindTexture(GL_TEXTURE_2D, mirrorBuffer);
+//        renderScene(sceneShader);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-
-
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
         glCheckError();
@@ -352,6 +317,55 @@ int main()
 
     glfwTerminate();
     return 0;
+}
+
+void renderScene(Shader sceneShader) {// floor
+    sceneShader.use();
+    sceneShader.setMat4("model", glm::mat4(1.0f));
+    sceneShader.setMat4("view", view);
+    glBindVertexArray(planeVAO);
+    glBindTexture(GL_TEXTURE_2D, floorTexture);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+    glm::mat4 model = glm::mat4(1.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float) SCR_WIDTH / (float) SCR_HEIGHT,
+                                            0.1f, 100.0f);
+
+    sceneShader.setMat4("projection", projection);
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+
+    // normal containers
+    glBindVertexArray(cubeVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, cubeTexture);
+    model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+    sceneShader.setMat4("model", model);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+    sceneShader.setMat4("model", model);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    glDisable(GL_CULL_FACE);
+
+    glBindVertexArray(grassVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, grassTexture);
+    std::map<float, glm::vec3> sorted;
+    for (int i = 0; i < windows.size(); i++) {
+        float distance = glm::length(camera.Position - windows[i]);
+        sorted[distance] = windows[i];
+    }
+
+    for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, it->second);
+        sceneShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly

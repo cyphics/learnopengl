@@ -32,8 +32,8 @@ void main() {
     vec3 col = vec3(0.0);
     for(int i = 0; i < 9; i++)
         col += sampleTex[i] * kernel[i];
-//    FragColor = texture(screenTexture, TexCoords);
+    FragColor = texture(screenTexture, TexCoords);
 //    float average = (FragColor.r + FragColor.g + FragColor.b) / 3.0;
 //    float average = 0.2126 * FragColor.r + 0.7152 * FragColor.g + 0.0722 *FragColor.b;
-    FragColor = vec4(col, 1.0);
+//    FragColor = vec4(col, 1.0);
 };
