@@ -73,6 +73,7 @@ int main()
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
+    glEnable(GL_PROGRAM_POINT_SIZE);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     stbi_set_flip_vertically_on_load(true);
@@ -80,9 +81,24 @@ int main()
 
     // build and compile shaders
     // -------------------------
-    Shader shader("vertexShader.vsh", "fragmentShader.fsh");
-    Shader shaderSingleColor("vertexShader.vsh", "shaderSingleColor.fsh");
+    Shader shaderRed(   "vertexShader.vsh", "shaderRed.fsh");
+    Shader shaderBlue(  "vertexShader.vsh", "shaderBlue.fsh");
+    Shader shaderYellow("vertexShader.vsh", "shaderYellow.fsh");
+    Shader shaderGreen( "vertexShader.vsh", "shaderGreen.fsh");
 
+    Shader colorShaders[4] = {
+            shaderRed,
+            shaderGreen,
+            shaderBlue,
+            shaderYellow
+    };
+
+    glm::mat4 cubesPositions[4] = {
+            glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f,  1.0f, -1.0f)),
+            glm::translate(glm::mat4(1.0f), glm::vec3( 1.0f,  1.0f, -1.0f)),
+            glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -1.0f, -1.0f)),
+            glm::translate(glm::mat4(1.0f), glm::vec3( 1.0f, -1.0f, -1.0f)),
+    };
     std::vector<glm::vec3> windows;
     windows.push_back(glm::vec3(-1.4f, 0.0f, -0.45f));
     windows.push_back(glm::vec3(1.5f, 0.0f, 0.4f));
@@ -149,6 +165,25 @@ int main()
          5.0f, -0.5f, -5.0f,  2.0f, 2.0f								
     };
 
+    // uniform buffer object
+    unsigned int red    = glGetUniformBlockIndex(shaderRed.ID,    "Matrices");
+    unsigned int green  = glGetUniformBlockIndex(shaderGreen.ID,  "Matrices");
+    unsigned int blue   = glGetUniformBlockIndex(shaderBlue.ID,   "Matrices");
+    unsigned int yellow = glGetUniformBlockIndex(shaderYellow.ID, "Matrices");
+
+    glUniformBlockBinding(shaderRed.ID   , red   , 0);
+    glUniformBlockBinding(shaderGreen.ID , green , 0);
+    glUniformBlockBinding(shaderBlue.ID  , blue  , 0);
+    glUniformBlockBinding(shaderYellow.ID, yellow, 0);
+
+    unsigned int uboMatrices;
+    glGenBuffers(1, &uboMatrices);
+    glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+    glBufferData(GL_UNIFORM_BUFFER, 2*sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, uboMatrices, 0, 2 * sizeof(glm::mat4));
+
+
     // plane VAO
     unsigned int planeVAO, planeVBO;
     glGenVertexArrays(1, &planeVAO);
@@ -193,12 +228,15 @@ int main()
     // -------------
     unsigned int cubeTexture  = loadTexture("../resources/textures/marble.jpg");
     unsigned int floorTexture = loadTexture("../resources/textures/metal.png");
-    unsigned int grassTexture = loadTexture("../resources/textures/blending_transparent_window.png");
 
     // shader configuration
     // --------------------
-    shader.use();
-    shader.setInt("material.diffuse", 0);
+
+
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     // render loop
     // -----------
@@ -219,52 +257,28 @@ int main()
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // floor
-        shader.use();
-        glBindVertexArray(planeVAO);
-        glBindTexture(GL_TEXTURE_2D, floorTexture);
-        shader.setMat4("model", glm::mat4(1.0f));
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
 
-        glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        shader.setMat4("view", view);
-        shader.setMat4("projection", projection);
 
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
 
         // normal containers
+        glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+        glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
         glBindVertexArray(cubeVAO);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, cubeTexture);
-        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-        shader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-        shader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        for (int i = 0; i < 4; i++) {
+            colorShaders[i].use();
+            colorShaders[i].setMat4("model", cubesPositions[i]);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
         glDisable(GL_CULL_FACE);
 
-        glBindVertexArray(grassVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, grassTexture);
-        std::map<float, glm::vec3> sorted;
-        for (int i = 0; i < windows.size(); i++) {
-            float distance = glm::length(camera.Position - windows[i]);
-            sorted[distance] = windows[i];
-        }
-
-        for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
-            model = glm::mat4 (1.0f);
-            model = glm::translate(model, it->second);
-            shader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
