@@ -14,7 +14,7 @@ include_directories(include/)
 find_library(LIB glfw3 lib)
 
 add_executable(opengl
-        src/depth_testing.cpp
+        src/main.cpp
         src/glad.c
 #        src/model.cpp
         src/shader.cpp

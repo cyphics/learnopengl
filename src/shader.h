@@ -20,12 +20,17 @@ class Shader {
 public:
     // the program ID
     unsigned int ID;
+    unsigned int vertexID;
+    unsigned int fragmentID;
+    unsigned int geometryID;
     const char* identifier;
 
     // constructor reads and builds the shader
 //    Shader(const char* vertexPath, const char* fragmentPath, const char* identifier = "");
     Shader(const std::string &vertexPath, const std::string &fragmentPath, const char* identifier = "");
     // use/activate the shader
+    void setShader(GLenum shaderType, const std::string &filePath);
+    void linkShaders();
     void use();
     // utility uniform functions
     void setBool (const std::string &name, bool  value) const;
