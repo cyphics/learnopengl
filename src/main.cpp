@@ -7,14 +7,16 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
-#include <map>
 #include "camera.h"
 #include "shader.h"
+#include "model.h"
+//#include "../lib/glfw-3.3.8/deps/glad/gl.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
+void GLAPIENTRY debugCallback(GLenum source, GLenum type, GLuint id, GLenum severtiy, GLsizei length, const GLchar *message, const void *param);
 unsigned int loadTexture(const char *path);
 
 // settings
@@ -36,13 +38,11 @@ int main()
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
 
     // glfw window creation
     // --------------------
@@ -71,40 +71,37 @@ int main()
 
     // configure global opengl state
     // -----------------------------
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glEnable(GL_PROGRAM_POINT_SIZE);
+//    glEnable(GL_DEPTH_TEST);
+//    glEnable(GL_BLEND);
+//    glEnable(GL_PROGRAM_POINT_SIZE);
+//    glEnable(GL_DEBUG_OUTPUT);
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(debugCallback, NULL);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
+
+
+//    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     stbi_set_flip_vertically_on_load(true);
 //    glDepthFunc(GL_ALWAYS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
-    float points[] = {
-            -0.5f,  0.5f, 1.0f, 0.0f, 0.0f,
-             0.5f,  0.5f, 0.0f, 1.0f, 0.0f,
-             0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
-            -0.5f, -0.5f, 1.0f, 1.0f, 0.0f,
-    };
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
     Shader shader("vertexShader.vsh", "basicFragmentShader.fsh");
-    shader.setShader(GL_GEOMETRY_SHADER, "geometry.gsh");
-    shader.linkShaders();
-
-    unsigned int VAO, VBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(points), &points, GL_STATIC_DRAW);
     glCheckError();
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
-    glBindVertexArray(0);
+    shader.setShader(GL_GEOMETRY_SHADER, "geometry.gsh");
+    glCheckError();
+    shader.linkShaders();
+    glCheckError();
 
+    shader.use();
+    shader.setMat4("projection", projection);
 
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glCheckError();
+    Model backpackModel("../resources/backpack/backpack.obj");
+    shader.setVec3("explosion", glm::vec3(0.0f, 0.0f, 0.0f));
+
+    glCheckError();
 
     // render loop
     // -----------
@@ -126,15 +123,20 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
+
+        glCheckError();
         glm::mat4 view = camera.GetViewMatrix();
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 
-
+        glCheckError();
         shader.use();
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_POINTS, 0, 4);
-
-        glDisable(GL_CULL_FACE);
-
+        glCheckError();
+        shader.setFloat("time", currentFrame);
+        shader.setMat4("view", view);
+        shader.setMat4("model", model);
+        backpackModel.Draw(shader);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -145,8 +147,6 @@ int main()
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
 
     glfwTerminate();
     return 0;
@@ -249,4 +249,11 @@ unsigned int loadTexture(char const *path)
     }
 
     return textureID;
+}
+
+void GLAPIENTRY debugCallback(GLenum source, GLenum type, GLuint id, GLenum severtiy, GLsizei length, const GLchar *message, const void *param) {
+    std::string sourceStr = std::to_string(source);
+    std::string typeStr = std::to_string(type);
+    std::string severityStr = std::to_string(severtiy);
+    printf("%s:%s[%s](%d): %s\n", sourceStr.c_str(), typeStr.c_str(), severityStr.c_str(), id, message);
 }

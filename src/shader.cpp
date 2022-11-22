@@ -62,7 +62,7 @@ void Shader::setShader(GLenum shaderType, const std::string &filePath) {
         std::cout << "ERROR::SHADER::COMPILATION_FAILED for " << filePath << "\n" << infoLog << std::endl;
         exit(1);
     }
-    std::cout << "Shader " << getShaderTypeString(shaderType) << " set with value " << *shaderID << std::endl;
+    std::cout << "Shader " << getShaderTypeString(shaderType) << " (" << filePath << ") set with value " << *shaderID << std::endl;
 }
 
 Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath, const char* identifier) {

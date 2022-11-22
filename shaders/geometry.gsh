@@ -1,29 +1,41 @@
 #version 330 core
-layout (points) in;
-layout (triangle_strip, max_vertices = 5) out;
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 333) out;
 
 in VS_OUT {
-    vec3 color;
+    vec2 texCoords;
 } gs_in[];
 
-out vec3 fColor;
+out vec2 TexCoords;
 
-void build_house(vec4 position) {
-    fColor = gs_in[0].color;
-    gl_Position = position + vec4(-0.2, -0.2, 0.0, 0.0);
+uniform float time;
+uniform vec3 explosion;
+
+vec3 GetNormal() {
+    vec3 a = vec3(gl_in[0].gl_Position) - vec3(gl_in[1].gl_Position);
+    vec3 b = vec3(gl_in[2].gl_Position) - vec3(gl_in[1].gl_Position);
+    return normalize(cross(a, b));
+}
+
+vec4 explode(vec4 position, vec3 dir) {
+    float magnitude = 2.0;
+    vec3 direction = dir * ((sin(time) + 1.0) / 2.0) * magnitude;
+    return position + vec4(direction, 0.0);
+}
+
+void main() {
+    vec3 normal = GetNormal();
+//    vec3 direction = normalize(vec3(gl_in[0].gl_Position) - explosion);
+    vec3 direction = normal;
+
+    gl_Position = explode(gl_in[0].gl_Position, direction);
+    TexCoords = gs_in[0].texCoords;
     EmitVertex();
-    gl_Position = position + vec4( 0.2, -0.2, 0.0, 0.0);
+    gl_Position = explode(gl_in[1].gl_Position, direction);
+    TexCoords = gs_in[1].texCoords;
     EmitVertex();
-    gl_Position = position + vec4(-0.2,  0.2, 0.0, 0.0);
-    EmitVertex();
-    gl_Position = position + vec4( 0.2,  0.2, 0.0, 0.0);
-    EmitVertex();
-    gl_Position = position + vec4( 0.0,  0.4, 0.0, 0.0);
-    fColor = vec3(1.0, 1.0, 1.0);
+    gl_Position = explode(gl_in[2].gl_Position, direction);
+    TexCoords = gs_in[2].texCoords;
     EmitVertex();
     EndPrimitive();
-
-}
-void main() {
-    build_house(gl_in[0].gl_Position);
 }
