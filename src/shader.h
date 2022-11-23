@@ -20,9 +20,7 @@ class Shader {
 public:
     // the program ID
     unsigned int ID;
-    unsigned int vertexID;
-    unsigned int fragmentID;
-    unsigned int geometryID;
+    unsigned int shaderIDs[3];
     const char* identifier;
 
     // constructor reads and builds the shader

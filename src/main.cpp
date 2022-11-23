@@ -71,10 +71,9 @@ int main()
 
     // configure global opengl state
     // -----------------------------
-//    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
 //    glEnable(GL_BLEND);
 //    glEnable(GL_PROGRAM_POINT_SIZE);
-//    glEnable(GL_DEBUG_OUTPUT);
 
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(debugCallback, NULL);

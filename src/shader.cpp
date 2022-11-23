@@ -5,6 +5,10 @@
 #include "shader.h"
 #include "helpers.h"
 
+#define VERTEX_SHADER 0
+#define GEOMETRY_SHADER 1
+#define FRAGMENT_SHADER 2
+
 std::string OpenFile(const std::string& path) {
     std::string code;
     std::ifstream shaderFile;
@@ -40,29 +44,29 @@ void Shader::setShader(GLenum shaderType, const std::string &filePath) {
     const char* shaderCode = shaderCodeRaw.c_str();
     int success;
     char infoLog[512];
-    unsigned int *shaderID;
+    // 2. Compile shaders
+    unsigned int slot, shaderID = glCreateShader(shaderType);
     switch (shaderType) {
         case GL_VERTEX_SHADER:
-            shaderID = &vertexID;
+            slot = VERTEX_SHADER;
             break;
         case GL_FRAGMENT_SHADER:
-            shaderID = &fragmentID;
+            slot = FRAGMENT_SHADER;
             break;
         case GL_GEOMETRY_SHADER:
-            shaderID = &geometryID;
+            slot = GEOMETRY_SHADER;
             break;
     }
-    // 2. Compile shaders
-    *shaderID = glCreateShader(shaderType);
-    glShaderSource(*shaderID, 1, &shaderCode, NULL);
-    glCompileShader(*shaderID);
-    glGetShaderiv(*shaderID, GL_COMPILE_STATUS, &success);
+    shaderIDs[slot] = shaderID;
+    glShaderSource(shaderID, 1, &shaderCode, NULL);
+    glCompileShader(shaderID);
+    glGetShaderiv(shaderID, GL_COMPILE_STATUS, &success);
     if (!success) {
-        glGetShaderInfoLog(*shaderID, 512, NULL, infoLog);
+        glGetShaderInfoLog(shaderID, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::COMPILATION_FAILED for " << filePath << "\n" << infoLog << std::endl;
         exit(1);
     }
-    std::cout << "Shader " << getShaderTypeString(shaderType) << " (" << filePath << ") set with value " << *shaderID << std::endl;
+    std::cout << "Shader " << getShaderTypeString(shaderType) << " (" << filePath << ") set with value " << shaderID << std::endl;
 }
 
 Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath, const char* identifier) {
@@ -75,11 +79,11 @@ void Shader::linkShaders() {
     char infoLog[512];
 
     ID = glCreateProgram();
-    glAttachShader(ID, vertexID);
-    if (geometryID > 0) {
-        glAttachShader(ID, geometryID);
+    glAttachShader(ID, shaderIDs[VERTEX_SHADER]);
+    if (shaderIDs[GEOMETRY_SHADER] > 0) {
+        glAttachShader(ID, shaderIDs[GEOMETRY_SHADER]);
     }
-    glAttachShader(ID, fragmentID);
+    glAttachShader(ID, shaderIDs[FRAGMENT_SHADER]);
     glLinkProgram(ID);
     // print linking errors if any
     if(!success) {
@@ -89,11 +93,11 @@ void Shader::linkShaders() {
     }
 
     // delete shaders; the're linked into our program and are no longer necessary
-    glDeleteShader(vertexID);
-    if (geometryID > -1) {
-        glDeleteShader(geometryID);
+    glDeleteShader(shaderIDs[VERTEX_SHADER]);
+    if (shaderIDs[GEOMETRY_SHADER] > -1) {
+        glDeleteShader(shaderIDs[GEOMETRY_SHADER]);
     }
-    glDeleteShader(fragmentID);
+    glDeleteShader(shaderIDs[FRAGMENT_SHADER]);
 }
 
 void Shader::use() {
